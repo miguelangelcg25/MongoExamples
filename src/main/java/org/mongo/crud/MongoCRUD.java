@@ -4,10 +4,13 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
+import static com.mongodb.client.model.Filters.*;
+import com.mongodb.client.model.Projections;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 
 /**
  *
@@ -25,6 +28,7 @@ public class MongoCRUD {
         MongoCRUD mongo = new MongoCRUD();
         mongo.insertExample();
         mongo.findExample();
+        mongo.findWithFilters();
     }
 
     public void insertExample() {
@@ -83,6 +87,34 @@ public class MongoCRUD {
         System.out.println(users.count());
 
         System.out.println("--\n");
+    }
+    
+    public void findWithFilters(){
+        System.out.println("Find with FILTERS:");
+        users.drop();
+
+        for (int i = 0; i < 5; i++) {
+            users.insertOne(new Document("x", i).append("y", i * 10));
+        }
+        
+        //db.users.find({ x:3, y:{"$gt:10, $lt:50}})
+        Bson filter = new Document("x", 3).append("y", new Document("$gt",10).append("$lt", 50));
+        Document doc = users.find(filter).first();
+        System.out.println(doc);
+        
+        filter = and(eq("x",3), gt("y", 10), lt("y", 50));
+        doc = users.find(filter).first();
+        System.out.println(doc);
+        
+        //excludes x and includes y
+        Bson projections = new Document("x",0).append("y", 1);
+        //exlcudes x and _id
+        projections = Projections.exclude("x", "_id");
+        //includes y, _id is included by default
+        projections = Projections.include("y");
+        //includes x, y and exlcudes _id
+        projections = Projections.fields(Projections.include("x", "y"), Projections.exclude("_id"));
+        List<Document> list = users.find(filter).projection(projections).into(new ArrayList<Document>());        
     }
 
 }
